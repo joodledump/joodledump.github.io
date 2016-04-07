@@ -1,0 +1,410 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>PICKLE</title>
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+
+    <link href="css/cover.css" rel="stylesheet">
+  <script src="js/socket.io.min.js"></script>
+  <script src="js/modernizr.min.js"></script>
+  <script src="js/jquery.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <![endif]-->
+  </head>
+
+  <body>
+
+    <div class="site-wrapper">
+
+      <div class="site-wrapper-inner">
+
+        <div class="cover-container">
+
+          <div class="masthead clearfix tofade">
+            <div class="inner">
+              <h3 class="masthead-brand">Joodle Dump</h3>
+              <nav>
+                <ul class="nav masthead-nav">
+                  <li><a href="index.html">Home</a></li>
+                  <li class="active"><a href="#">Play</a></li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+
+          <div class="inner cover tofade" id="heading">
+            <h1 id="welcome" class="cover-heading"></h1>
+          </div>
+	  <div class="tofade">
+	    <canvas id="canvas1"></canvas>
+	    <canvas id="canvas2"></canvas>
+	</div>
+          <div class="mastfoot">
+            <div class="inner">
+              <p>Made by A.J. Uppal</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+        <script>
+var score1 = 0;
+var keyPress = {37: false, 39: false};
+var player1base = new Image();
+var player2base = new Image();
+var greenGround = new Image();
+var blueGround = new Image();
+var tiles1 = [];
+var tiles2 = [];
+greenGround.src = 'imgs/ground1.png';
+blueGround.src = 'imgs/ground2.png';
+player1base.src = 'imgs/doodlerleft.png';
+player2base.src = 'imgs/doodlerleft.png';
+doodlerWidth = 72;
+doodlerHeight = 72;
+var player1 = {'img': player1base, "x": 126.5, "y": 225, "canvas": 1, "velY": 0}
+var player2 = {'img': player2base, "x": 126.5, "y": 225, "canvas": 2, "velY": 0}
+var socket = io.connect('ws://23911404.ngrok.io');
+var myId = -1;
+var opponentId = "";
+var faded = false;
+var gravity = 0.1;
+var prevName = "";
+var canvas1 = document.getElementById("canvas1");
+var ctx1 = canvas1.getContext("2d");
+var initialTime = new Date();
+var speed = 1 + (new Date() - initialTime)/25000;
+canvas1.style.backgroundColor = "white";
+var canvas2 = document.getElementById("canvas2");
+var ctx2 = canvas2.getContext("2d");
+canvas2.style.backgroundColor = "white";
+canvas1.width = 325;
+canvas1.height = 425;
+canvas2.width = 325;
+canvas2.height = 425;
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function Tile(type, canvasid, y){
+	if(canvasid == 1){
+		tcanvas = canvas1;
+	}else{
+		tcanvas = canvas2;
+	}
+	this.type = type;
+	if(type == 0){
+		this.img = greenGround;
+	}else{
+		this.img = blueGround;
+	}
+	this.speed = getRandomInt(100, speed*1000)/1000;
+	this.dir = ["left", "right"][getRandomInt(0, 1)];
+	this.x = getRandomInt(0, tcanvas.width - 100);
+	this.newX = function(){
+		this.x = getRandomInt(0, tcanvas.width - 100);
+	}
+	this.y = y
+	this.width = 100;
+	this.height = 27;
+	this.setType = function(new_type){
+		if(new_type == 1){
+			this.img = blueGround;
+		}else{
+			this.img = greenGround;
+		}
+		this.type = new_type;
+	}
+	this.draw = function(){
+		drawImage({'x': this.x, 'y': this.y, 'canvas': canvasid, 'img': this.img});
+	}
+}
+tiles1.push(new Tile(0, 1, canvas1.height - (45+27)));
+//tiles1.push(new Tile(0, 1, canvas1.height - 1.4*(45+27)));
+tiles1.push(new Tile(0, 1, canvas1.height - 2.2*(45+27)));
+//tiles1.push(new Tile(0, 1, canvas1.height - 2.7*(45+27)));
+tiles1.push(new Tile(0, 1, canvas1.height - 3.8*(45+27)));
+tiles1.push(new Tile(1, 1, canvas1.height - 4.4*(45+27)));
+//tiles1.push(new Tile(0, 1, canvas1.height - 4.75*(45+27)));
+tiles1.push(new Tile(0, 1, canvas1.height - 5.1*(45+27)));
+//tiles1.push(new Tile(0, 1, canvas1.height - 5.3*(45+27)));
+tiles1.push(new Tile(0, 1, canvas1.height - 5.65*(45+27)));
+$(window).on('resize', function(){
+	var win = $(this); //this = window
+	if (win.height() <= 590) {
+		if(!faded){
+			$(".tofade").fadeOut(1500, function(){
+				$("#heading")[0].style.display = "";
+				$(".inner.cover").fadeIn(1000);
+				var nameString = $("#welcome")[0].innerHTML;
+				if(nameString != "Please enlarge your window"){
+					prevName = nameString;
+				}
+				$("#welcome")[0].innerHTML = "Please enlarge your window";
+			});
+			console.log("Please enlargen your window height to at least 590 pixels, it is currently "+win.height()+" pixels.")
+		}
+		faded = true;
+	}else{
+		if(faded == true){
+			$(".inner.cover").fadeOut(1000);
+			setTimeout(function(){
+				$(".tofade").fadeIn(1500);
+			$("#welcome")[0].innerHTML = prevName;
+			}, 1000);
+		}
+		faded = false;
+	}
+	if (win.width() >= 1280) { /* ... */ }
+});
+function getId(){
+	var url = window.location.href;
+        if(url.split("?").length < 2){
+                document.location = "index.html";
+                return false;
+        }else{
+                var myId = url.split("?")[1].split("=")[1];
+        }
+	return myId;
+}
+playerId = getId();
+
+window.onbeforeunload = function() {
+	var url = window.location.href;
+        if(url.split("?").length < 2){
+                document.location = "index.html";
+                return false;
+        }else{
+                var myId = url.split("?")[1].split("=")[1];
+        }
+    socket.emit("exited", {"id": myId});
+};
+function queryOpponent(id){
+	socket.emit("searchingOpponent", {"id": id});
+	if(opponentId == ""){
+		setTimeout(function(){queryOpponent(id)}, 200);
+	}
+}
+$(document).ready(function() {
+	var winheight= window.innerHeight;
+	if (winheight <= 590 && !faded) {
+                        $(".tofade").fadeOut(1500, function(){
+                                $("#heading")[0].style.display = "";
+                                $(".inner.cover").fadeIn(1000);
+                                var nameString = $("#welcome")[0].innerHTML;
+                                if(nameString != "Please enlarge your window"){
+                                        prevName = nameString;
+                                }
+                                $("#welcome")[0].innerHTML = "Please enlarge your window";
+                        });
+                        console.log("Please enlargen your window height to at least 590 pixels, it is currently "+winheight+" pixels.")
+                faded = true;
+        }
+//	update();
+	var url = window.location.href;
+	if(url.split("?").length < 2){
+		document.location = "index.html";
+		return false;
+	}else{
+		var myId = url.split("?")[1].split("=")[1];
+	}
+//	console.log(myId);
+	queryOpponent(myId);
+	socket.on("foundOpponent", function(data){
+		opponentId = data.id;
+		console.log(data.id);
+		socket.emit("reportToOtherPlayer", {"id": myId, "theirId": data.id});
+		update();
+	});
+	
+	socket.on("updateData", function(data){
+		console.log(JSON.stringify(data));
+		if(data.player!=undefined){
+			player2 = data.player;
+			player2.img = player2base;
+			player2.canvas = 2;
+		}
+		if(data.tiles != undefined){
+			tiles2 = data.tiles;
+		}
+	});
+	socket.emit("play", {"id": myId});
+	socket.on("badid", function(){
+		document.location = "index.html";
+		return false;
+	});
+	socket.on("welcome", function(data){
+		var name = data.name;
+		$('#welcome')[0].innerHTML = "Welcome "+name+"!";
+	});
+$(document).keydown(function(e) {
+    if(e.which == 37 || e.which == 39) {
+	keyCode = e.which;
+	keyPress[e.which] = true;
+    }
+});
+$(document).keyup(function(e) {
+    if(e.which == 37 || e.which == 39) {
+	keyCode = e.which;
+	keyPress[e.which] = false;
+    }
+});
+});
+//counter = 0;
+function update(){
+//	if(counter == 10){
+		socket.emit("sendData", {"id": playerId, "player": player1, "tiles": tiles1});
+		socket.emit("requestData", {"opponentId": opponentId, "id": playerId});
+//	}
+//	counter++;
+//	if(counter > 10){
+//		counter = 0;
+//	}
+	speed = 1 + (new Date() - initialTime)/25000;
+	ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+	ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+	if(keyPress[37]){
+		player1.x-=3.5;
+	}
+	if(keyPress[39]){
+		player1.x+=3.5;
+	}
+	if(player1.x+doodlerWidth >= canvas1.width+doodlerWidth/2){
+		player1.x = -doodlerWidth/2;
+	}
+	if(player1.x < -doodlerWidth/2){
+		player1.x = canvas1.width - doodlerWidth/2;
+	}
+	player1.velY+=gravity;
+	player1.y+=player1.velY;
+//	player2.velY+=gravity;
+//	player2.y+=player2.velY;
+	if(player1.y+doodlerHeight >= canvas1.height && player1.velY > 0){
+//		$("#canvas1").fadeOut(2000);
+		player1.velY*=-1;
+	}
+//	if(player2.y+doodlerHeight >= canvas2.height && player2.velY > 0){
+//		player2.velY*=-1;
+//	}
+	for(var i = 0; i < tiles2.length; i++){
+		tile = tiles2[i];
+		//tile.draw();
+		if(tile.type == 0){
+			tile.img = greenGround;
+		}else{
+			tile.img = blueGround;
+		}
+		drawImage({'x': tile.x, 'y': tile.y, 'canvas': 2, 'img': tile.img});
+	}
+	for(var i = 0; i < tiles1.length; i++){
+		tile = tiles1[i];
+		tile.draw();
+		if((player1.x) + doodlerWidth > tile.x && (player1.x+27) < tile.x + tile.width){
+			if(player1.y+doodlerHeight >= tile.y && player1.y+doodlerHeight <= tile.y + tile.height){
+				if(player1.velY >= 0){
+					player1.velY = -5;
+					console.log(JSON.stringify(tile));
+				}
+			}
+		}
+		if(tile.type == 1){
+			if(tile.dir == "left"){
+				tile.x-=tile.speed;
+				if(tile.x <= 0){
+					tile.x = 0;
+					tile.dir = "right";
+				}
+			}else{
+				tile.x+=tile.speed;
+				if(tile.x + tile.width >= canvas1.width){
+					tile.x = canvas1.width-tile.width;
+					tile.dir = "left";
+				}
+			}
+		}
+	}
+	if(player1.y <= 150){
+		player1.y = 150;
+		dify = player1.velY;
+		score1-=dify;
+		for(var i = 0; i < tiles1.length; i++){
+			tile = tiles1[i];
+			tile.y -= dify;
+			if(tile.y > canvas1.height){
+				if(i > 0){
+					while(Math.abs(tile.y-tiles1[i-1].y) > 125){
+						tile.y = -getRandomInt(0.5*tile.height, 1.5*tile.height);
+					}
+				}else{
+					while(Math.abs(tile.y-tiles1[tiles1.length-1].y) > 125){
+						tile.y = -getRandomInt(0.5*tile.height, 1.5*tile.height);
+					}
+				}
+					
+				tile.newX();
+				var randnum = getRandomInt(1, 10);
+				if(randnum <= 4){
+					tile.setType(1);
+				}else{
+					tile.setType(0);
+				}
+			}
+		}
+	}
+	addText("Score: "+Math.round(score1));
+	drawImage(player1);
+	drawImage(player2);
+	setTimeout(update, 10);
+}
+function drawImage(player){
+	if(player.canvas == 1){
+		ctx1.drawImage(player.img, player.x, player.y);
+	}else{
+		ctx2.drawImage(player.img, player.x, player.y);
+	}
+ }
+function addText(text){
+	ctx1.fillStyle = "black";
+	ctx1.font = "12pt Arial";
+	ctx1.fillText(text, 5, 17);
+}
+
+function fadeOut(text) {
+    var alpha = 1.0,   // full opacity
+        interval = setInterval(function () {
+            canvas1.width = canvas1.width; // Clears the canvas
+            ctx1.fillStyle = "rgba(0, 0, 0, " + alpha + ")";
+            ctx1.font = "20pt Arial";
+            ctx1.fillText(text, 50, 50);
+            alpha = alpha - 0.05; // decrease opacity (fade out)
+            if (alpha < 0) {
+                canvas1.width = canvas1.width;
+                clearInterval(interval);
+            }
+        }, 50); 
+}
+
+        </script>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script> -->
+  </body>
+</html>
+
