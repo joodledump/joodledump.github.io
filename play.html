@@ -253,16 +253,16 @@ $(document).ready(function() {
 		$('#welcome')[0].innerHTML = "Welcome "+name+"!";
 	});
 $(document).keydown(function(e) {
-    if(e.which == 37 || e.which == 39) {
-	keyCode = e.which;
+//    if(e.which == 37 || e.which == 39 ) {
+//	keyCode = e.which;
 	keyPress[e.which] = true;
-    }
+  //  }
 });
 $(document).keyup(function(e) {
-    if(e.which == 37 || e.which == 39) {
-	keyCode = e.which;
+//    if(e.which == 37 || e.which == 39) {
+//	keyCode = e.which;
 	keyPress[e.which] = false;
-    }
+  //  }
 });
 });
 //counter = 0;
@@ -278,10 +278,10 @@ function update(){
 	speed = 1 + (new Date() - initialTime)/25000;
 	ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
 	ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-	if(keyPress[37]){
+	if(keyPress[37] || keyPress[65]){
 		player1.x-=3.5;
 	}
-	if(keyPress[39]){
+	if(keyPress[39] || keyPress[68]){
 		player1.x+=3.5;
 	}
 	if(player1.x+doodlerWidth >= canvas1.width+doodlerWidth/2){
