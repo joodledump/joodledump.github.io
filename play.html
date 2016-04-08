@@ -84,7 +84,7 @@ var socket = io.connect('ws://23911404.ngrok.io');
 var myId = -1;
 var opponentId = "";
 var faded = false;
-var gravity = 0.1;
+var gravity = 0.05;
 var prevName = "";
 var canvas1 = document.getElementById("canvas1");
 var ctx1 = canvas1.getContext("2d");
@@ -157,7 +157,7 @@ $(window).on('resize', function(){
 				}
 				$("#welcome")[0].innerHTML = "Please enlarge your window";
 			});
-			console.log("Please enlargen your window height to at least 590 pixels, it is currently "+win.height()+" pixels.")
+			//console.log("Please enlargen your window height to at least 590 pixels, it is currently "+win.height()+" pixels.")
 		}
 		faded = true;
 	}else{
@@ -212,7 +212,7 @@ $(document).ready(function() {
                                 }
                                 $("#welcome")[0].innerHTML = "Please enlarge your window";
                         });
-                        console.log("Please enlargen your window height to at least 590 pixels, it is currently "+winheight+" pixels.")
+                        //console.log("Please enlargen your window height to at least 590 pixels, it is currently "+winheight+" pixels.")
                 faded = true;
         }
 //	update();
@@ -227,13 +227,13 @@ $(document).ready(function() {
 	queryOpponent(myId);
 	socket.on("foundOpponent", function(data){
 		opponentId = data.id;
-		console.log(data.id);
+		//console.log(data.id);
 		socket.emit("reportToOtherPlayer", {"id": myId, "theirId": data.id});
 		update();
 	});
 	
 	socket.on("updateData", function(data){
-		console.log(JSON.stringify(data));
+		//console.log(JSON.stringify(data));
 		if(data.player!=undefined){
 			player2 = data.player;
 			player2.img = player2base;
@@ -265,16 +265,17 @@ $(document).keyup(function(e) {
   //  }
 });
 });
-//counter = 0;
+counter = 0;
+lag = 1;
 function update(){
-//	if(counter == 10){
+	if(counter == lag){
 		socket.emit("sendData", {"id": playerId, "player": player1, "tiles": tiles1});
 		socket.emit("requestData", {"opponentId": opponentId, "id": playerId});
-//	}
-//	counter++;
-//	if(counter > 10){
-//		counter = 0;
-//	}
+	}
+	counter++;
+	if(counter > lag){
+		counter = 0;
+	}
 	speed = 1 + (new Date() - initialTime)/25000;
 	ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
 	ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
@@ -292,8 +293,8 @@ function update(){
 	}
 	player1.velY+=gravity;
 	player1.y+=player1.velY;
-//	player2.velY+=gravity;
-//	player2.y+=player2.velY;
+	player2.velY+=gravity;
+	player2.y+=player2.velY;
 	if(player1.y+doodlerHeight >= canvas1.height && player1.velY > 0){
 //		$("#canvas1").fadeOut(2000);
 		player1.velY*=-1;
@@ -310,6 +311,21 @@ function update(){
 			tile.img = blueGround;
 		}
 		drawImage({'x': tile.x, 'y': tile.y, 'canvas': 2, 'img': tile.img});
+		if(tile.type == 1){
+			if(tile.dir == "left"){
+                                tile.x-=tile.speed;
+                                if(tile.x <= 0){
+                                        tile.x = 0;
+                                        tile.dir = "right";
+                                }
+                        }else{
+                                tile.x+=tile.speed;
+                                if(tile.x + tile.width >= canvas2.width){
+                                        tile.x = canvas2.width-tile.width;
+                                        tile.dir = "left";
+                                }
+                        }
+		}
 	}
 	for(var i = 0; i < tiles1.length; i++){
 		tile = tiles1[i];
@@ -318,7 +334,7 @@ function update(){
 			if(player1.y+doodlerHeight >= tile.y && player1.y+doodlerHeight <= tile.y + tile.height){
 				if(player1.velY >= 0){
 					player1.velY = -5;
-					console.log(JSON.stringify(tile));
+					//console.log(JSON.stringify(tile));
 				}
 			}
 		}
@@ -363,6 +379,17 @@ function update(){
 				}else{
 					tile.setType(0);
 				}
+			}
+		}
+	}
+	if(player2.y <= 150){
+		player2.y = 150;
+		dify = player2.velY;
+		for(var i = 0; i < tiles2.length; i++){
+			tile = tiles2[i];
+			tile.y -= dify;
+			if(tile.y > canvas2.height){
+				tile.y = -tile.height;					
 			}
 		}
 	}
